@@ -1,7 +1,6 @@
 import Feature from "ol/Feature";
 import Map from "ol/Map";
 import Point from "ol/geom/Point";
-import {Style, Fill, Stroke} from 'ol/style';
 import VectorSource from "ol/source/Vector";
 import Tile from "ol/layer/Tile";
 import View from "ol/View";
@@ -12,66 +11,68 @@ import WebGLPointsLayer from "ol/layer/WebGLPoints";
 // An array to contain all of the features from the dataset after processing
 const featuresArr = [];
 
-// Set of colors to be applied to each feature based on the feature's magnitude
-const arrowColorScaleArr = ["red", "blue", "green"];
+// 
+// const speed = () => ["get", "speed"];
 
 // Fetch data, convert to JSON, then processData()
-const getData = await fetch("data/weather.json")
+fetch("data/weather.json")
   .then(function (resData) {
     return resData.json();
   })
   .then(function (resDataJSON) {
     processData(resDataJSON);
+
+    // Initialize the map
+    const map = new Map({
+      layers: [
+        new Tile({ source: new OSM() }),
+        new WebGLPointsLayer({
+          source: new VectorSource({ features: featuresArr }),
+
+          style: {
+            symbol: {
+              symbolType: "triangle",
+              size: ["array", 
+                ["*", ["get", "speed"], 0.3], // speed * 0.4 --> width (triangle base)
+                ["*", ["get", "speed"], 0.8] // speed * 0.8 --> height (triangle peak)
+              ],
+              color: [
+                "case",
+                [">", ["get", "speed"], 40], // if speed over 40 --> red
+                "red",
+                [">", ["get", "speed"], 20], // if speed over 20 --> blue
+                "blue",
+                "green", // if speed <= 20 --> green
+              ],
+              rotation: ["*", ["get", "deg"], Math.PI / 180],
+              rotateWithView: true,
+            },
+          },
+        }),
+      ],
+      target: "map",
+      view: new View({
+        center: [0, 0],
+        zoom: 4,
+      }),
+    });
   });
-
-// Initialize the map
-const map = new Map({
-  layers: [new Tile({source: new OSM()}),
-    new WebGLPointsLayer({
-      source: new VectorSource({ features: featuresArr,}),
-
-      // THIS STATIC STYLE OBJECT WORKS AS EXPECTED
-      style: {
-        symbol: {
-          symbolType: "triangle",
-          size: 8,
-          color: "blue",
-          rotateWithView: true,
-        }
-      }
-
-      // A STYLE FUNCTION FAILS TO RENDER
-      // Result: Uncaught TypeError: Cannot read properties of undefined (reading 'size')
-      // style (feature, resolution) {
-      //   return { 
-      //     symbol: {
-      //       symbolType: "triangle",
-      //       size: 8,
-      //       color: "blue",
-      //     }
-      //   }
-      // }
-    }),
-  ],
-  target: "map",
-  view: new View({
-    center: [0, 0],
-    zoom: 2,
-  }),
-});
 
 function processData(data) {
   const weatherData = data.list;
   // Process data
   for (let i = 0; i < weatherData.length; ++i) {
     // Extract coordinates & wind values
-    const { coord } = weatherData[i];
+    const { coord, wind } = weatherData[i];
 
     // Convert from lon/lat to floats using the provided OL method
     const coordinates = fromLonLat([coord.lon, coord.lat]);
 
-    // Push feature & style to the array
-    featuresArr[i] = new Feature(new Point(coordinates));
-    // featuresArr[i].setStyle(arrow);
+    // Create this feature & add wind properties
+    const feature = new Feature(new Point(coordinates));
+    feature.setProperties(wind);
+
+    // Push feature to the array
+    featuresArr[i] = feature;
   }
 }
