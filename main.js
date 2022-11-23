@@ -11,9 +11,6 @@ import WebGLPointsLayer from "ol/layer/WebGLPoints";
 // An array to contain all of the features from the dataset after processing
 const featuresArr = [];
 
-// 
-// const speed = () => ["get", "speed"];
-
 // Fetch data, convert to JSON, then processData()
 fetch("data/weather.json")
   .then(function (resData) {
@@ -32,9 +29,10 @@ fetch("data/weather.json")
           style: {
             symbol: {
               symbolType: "triangle",
-              size: ["array", 
+              size: [
+                "array",
                 ["*", ["get", "speed"], 0.3], // speed * 0.4 --> width (triangle base)
-                ["*", ["get", "speed"], 0.8] // speed * 0.8 --> height (triangle peak)
+                ["*", ["get", "speed"], 0.8], // speed * 0.8 --> height (triangle peak)
               ],
               color: [
                 "case",
@@ -57,7 +55,6 @@ fetch("data/weather.json")
       }),
     });
   });
-
 function processData(data) {
   const weatherData = data.list;
   // Process data
